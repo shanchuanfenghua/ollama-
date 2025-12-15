@@ -182,7 +182,7 @@ const App: React.FC = () => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="flex-1 bg-transparent px-5 py-2 resize-none text-sm text-black placeholder-gray-400 focus:outline-none"
+            className="flex-1 bg-transparent px-5 py-2 resize-none text-lg text-black placeholder-gray-400 focus:outline-none"
             placeholder=""
           />
 
