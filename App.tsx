@@ -4,9 +4,6 @@ import { sendMessageToAI } from './services/geminiService';
 import ChatBubble from './components/ChatBubble';
 import SettingsModal from './components/SettingsModal';
 import { 
-  Smile, 
-  Folder, 
-  Paperclip,
   MoreHorizontal
 } from 'lucide-react';
 
@@ -42,7 +39,7 @@ const App: React.FC = () => {
     setMessages([{
       id: 'init',
       role: 'model',
-      content: "Hello! I am your local AI assistant running on Ollama. I'm ready to chat privately and securely.",
+      content: "你好！我是运行在 Ollama 上的本地 AI 助手。我已经准备好进行私密安全的聊天了。",
       timestamp: new Date()
     }]);
   }, []);
@@ -79,7 +76,7 @@ const App: React.FC = () => {
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         role: 'model',
-        content: `Error: ${error.message || 'Unknown error occurred.'}`,
+        content: `错误: ${error.message || '发生了未知错误。'}`,
         timestamp: new Date()
       }]);
     } finally {
@@ -161,19 +158,12 @@ const App: React.FC = () => {
         {/* Input Area */}
         <div className="h-[160px] border-t border-[#e7e7e7] bg-[#f5f5f5] flex flex-col flex-shrink-0">
           
-          {/* Toolbar */}
-          <div className="h-10 px-4 flex items-center gap-4 text-gray-600">
-            <button className="hover:text-black transition-colors"><Smile size={20} /></button>
-            <button className="hover:text-black transition-colors"><Folder size={20} /></button>
-            <button className="hover:text-black transition-colors"><Paperclip size={20} /></button>
-          </div>
-
           {/* Textarea */}
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="flex-1 bg-transparent px-5 py-2 resize-none text-lg text-black placeholder-gray-400 focus:outline-none"
+            className="flex-1 bg-transparent px-5 py-4 resize-none text-lg text-black placeholder-gray-400 focus:outline-none"
             placeholder="Type a message..."
           />
 

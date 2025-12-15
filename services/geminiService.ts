@@ -38,7 +38,7 @@ const sendMessageToOllama = async (
     });
 
     if (!response.ok) {
-      throw new Error(`Ollama Error: ${response.statusText}`);
+      throw new Error(`Ollama 错误: ${response.statusText}`);
     }
 
     const data = await response.json();
@@ -46,7 +46,7 @@ const sendMessageToOllama = async (
 
   } catch (error: any) {
     console.error("Ollama connection failed", error);
-    throw new Error("Could not connect to Ollama. Ensure it is running and 'OLLAMA_ORIGINS=\"*\"' is configured.");
+    throw new Error("无法连接到 Ollama。请确保它正在运行，并配置了 'OLLAMA_ORIGINS=\"*\"'。");
   }
 };
 
