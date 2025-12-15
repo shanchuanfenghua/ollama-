@@ -1,7 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
-import { Message } from "../types";
-
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+import { Message, AppSettings } from "../types";
 
 // Type definitions for Chrome's experimental built-in AI
 declare global {
@@ -21,74 +18,93 @@ declare global {
 /**
  * Tries to generate a response using Chrome's built-in local AI (Gemini Nano).
  */
-const generateLocalResponse = async (text: string): Promise<string | null> => {
+const generateLocalBrowserResponse = async (text: string): Promise<string> => {
   try {
     if (!window.ai?.languageModel) {
-      return null;
+      throw new Error("Chrome built-in AI is not supported in this browser version. Enable 'Optimization Guide On Device Model' in chrome://flags.");
     }
 
     const capabilities = await window.ai.languageModel.capabilities();
     if (capabilities.available === 'no') {
-      return null;
+      throw new Error("Chrome built-in AI is not available on this device.");
     }
 
-    // Create a session with the local model
     const session = await window.ai.languageModel.create({
-      systemPrompt: "You are a helpful assistant in an offline chat application. Keep answers concise."
+      systemPrompt: "You are a helpful assistant. Keep answers concise."
     });
 
     const result = await session.prompt(text);
-    return `[Local AI] ${result}`;
-  } catch (error) {
-    console.warn("Failed to use local AI:", error);
-    return null;
+    return `[Chrome Built-in] ${result}`;
+  } catch (error: any) {
+    console.warn("Failed to use Chrome local AI:", error);
+    throw new Error(`Chrome AI Error: ${error.message || 'Unknown error'}`);
   }
 };
 
-export const sendMessageToGemini = async (
+/**
+ * Sends a message to a local Ollama instance.
+ */
+const sendMessageToOllama = async (
   history: Message[], 
-  newMessage: string
+  newMessage: string,
+  settings: AppSettings
 ): Promise<string> => {
-  // 1. Check if browser explicitly reports offline
-  if (!navigator.onLine) {
-    console.log("App is offline.");
-    
-    // Try to use Chrome's built-in Local AI first
-    const localResponse = await generateLocalResponse(newMessage);
-    if (localResponse) {
-      return localResponse;
-    }
+  // Convert history to Ollama format (user/assistant)
+  // We take the last few messages to keep context without exceeding context windows too fast
+  const messages = history.slice(-10).map(msg => ({
+    role: msg.role === 'model' ? 'assistant' : 'user',
+    content: msg.content
+  }));
 
-    // Return explicit error if offline and no local model
-    return "Network Error: You are offline and the local AI model is unavailable.";
-  }
+  // Add the new message
+  messages.push({ role: 'user', content: newMessage });
+
+  const payload = {
+    model: settings.ollamaModel || 'qwen2.5:7b',
+    messages: messages,
+    stream: false, // For simplicity in this implementation, we wait for full response
+    options: {
+      temperature: 0.7
+    }
+  };
 
   try {
-    const chatHistory = history.slice(-15).map(msg => ({
-      role: msg.role,
-      parts: [{ text: msg.content }],
-    }));
-
-    const chat = ai.chats.create({
-      model: 'gemini-2.5-flash',
-      history: chatHistory,
-      config: {
-        systemInstruction: "You are a friendly friend chatting on a messaging app. Keep your responses casual, helpful, and concise. Use emojis occasionally.",
+    const baseUrl = settings.ollamaBaseUrl.replace(/\/$/, '');
+    const response = await fetch(`${baseUrl}/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify(payload)
     });
 
-    const result = await chat.sendMessage({ message: newMessage });
-    return result.text || "";
-  } catch (error) {
-    console.warn("Gemini API Error:", error);
-    
-    // 2. API Failed (timeout/server error) -> Try local AI
-    const localResponse = await generateLocalResponse(newMessage);
-    if (localResponse) {
-      return localResponse;
+    if (!response.ok) {
+      throw new Error(`Ollama Error: ${response.statusText}`);
     }
 
-    // Return explicit error if API fails and no local model
-    return "Service Error: Unable to reach Gemini server and local AI model is unavailable.";
+    const data = await response.json();
+    return data.message.content;
+
+  } catch (error: any) {
+    console.error("Ollama connection failed", error);
+    throw new Error("Could not connect to Ollama. Ensure it is running and 'OLLAMA_ORIGINS=\"*\"' is configured.");
   }
+};
+
+/**
+ * Main Orchestrator Function
+ */
+export const sendMessageToAI = async (
+  history: Message[], 
+  newMessage: string,
+  settings: AppSettings
+): Promise<string> => {
+  
+  if (settings.aiProvider === 'ollama') {
+    return await sendMessageToOllama(history, newMessage, settings);
+  } else if (settings.aiProvider === 'chrome_builtin') {
+    return await generateLocalBrowserResponse(newMessage);
+  }
+
+  throw new Error("Invalid AI Provider selected.");
 };

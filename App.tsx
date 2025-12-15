@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Message } from './types';
-import { sendMessageToGemini } from './services/geminiService';
+import { Message, AppSettings } from './types';
+import { sendMessageToAI } from './services/geminiService';
 import ChatBubble from './components/ChatBubble';
 import SettingsModal from './components/SettingsModal';
 import { 
@@ -15,12 +15,15 @@ const App: React.FC = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  // User Settings State (Nickname removed)
-  const [userAvatar, setUserAvatar] = useState('https://api.dicebear.com/9.x/avataaars/svg?seed=Felix');
-  
-  // Bot Settings State
-  const [botNickname, setBotNickname] = useState('Gemini Assistant');
-  const [botAvatar, setBotAvatar] = useState('https://api.dicebear.com/9.x/bottts-neutral/svg?seed=Gemini');
+  // Consolidated Settings State - Defaulting to Local (Ollama)
+  const [settings, setSettings] = useState<AppSettings>({
+    userAvatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Felix',
+    botNickname: 'Local Assistant',
+    botAvatar: 'https://api.dicebear.com/9.x/bottts-neutral/svg?seed=Ollama',
+    aiProvider: 'ollama',
+    ollamaModel: 'qwen2.5:7b',
+    ollamaBaseUrl: 'http://localhost:11434'
+  });
   
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -39,7 +42,7 @@ const App: React.FC = () => {
     setMessages([{
       id: 'init',
       role: 'model',
-      content: "Hello! I'm Gemini. How can I help you today?",
+      content: "Hello! I am your local AI assistant running on Ollama. I'm ready to chat privately and securely.",
       timestamp: new Date()
     }]);
   }, []);
@@ -61,7 +64,7 @@ const App: React.FC = () => {
     setMessages(prev => [...prev, newUserMsg]);
 
     try {
-      const responseText = await sendMessageToGemini(messages, userMsgText);
+      const responseText = await sendMessageToAI(messages, userMsgText, settings);
 
       const newBotMsg: Message = {
         id: (Date.now() + 1).toString(),
@@ -71,12 +74,12 @@ const App: React.FC = () => {
       };
 
       setMessages(prev => [...prev, newBotMsg]);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         role: 'model',
-        content: "Network error. Please try again.",
+        content: `Error: ${error.message || 'Unknown error occurred.'}`,
         timestamp: new Date()
       }]);
     } finally {
@@ -96,35 +99,28 @@ const App: React.FC = () => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
   };
 
-  const handleSaveSettings = (
-    newUserAvatar: string,
-    newBotNickname: string,
-    newBotAvatar: string
-  ) => {
-    setUserAvatar(newUserAvatar);
-    setBotNickname(newBotNickname);
-    setBotAvatar(newBotAvatar);
-  };
-
   return (
     <div className="flex items-center justify-center h-screen w-full bg-cover bg-center font-sans" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=2070&auto=format&fit=crop")' }}>
       
       <SettingsModal 
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
-        currentUserAvatar={userAvatar}
-        currentBotNickname={botNickname}
-        currentBotAvatar={botAvatar}
-        onSave={handleSaveSettings}
+        settings={settings}
+        onSave={setSettings}
       />
 
-      {/* Main Window Container - Simplified to just the Chat Area */}
+      {/* Main Window Container */}
       <div className="flex flex-col w-[800px] h-[800px] max-h-[90vh] bg-[#f5f5f5] rounded-lg shadow-2xl overflow-hidden relative">
         
         {/* Chat Header */}
         <div className="h-[60px] border-b border-[#e7e7e7] flex items-center justify-between px-6 bg-[#f5f5f5] flex-shrink-0 z-10">
           <div className="flex items-center gap-3">
-             <div className="font-medium text-lg text-black">{botNickname}</div>
+             <div className="flex flex-col">
+               <div className="font-medium text-lg text-black">{settings.botNickname}</div>
+               <div className="text-[10px] text-gray-500 uppercase tracking-wide">
+                 {settings.aiProvider === 'ollama' ? `Running on ${settings.ollamaModel}` : 'Running on Chrome Built-in'}
+               </div>
+             </div>
           </div>
           <button 
             onClick={() => setIsSettingsOpen(true)}
@@ -138,7 +134,7 @@ const App: React.FC = () => {
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto p-6 space-y-2 bg-[#f5f5f5]">
           {messages.map((msg, index) => {
-             // Logic to show timestamp if messages are far apart (mocked simply here)
+             // Logic to show timestamp
              const showTime = index === 0 || (new Date(msg.timestamp).getTime() - new Date(messages[index-1].timestamp).getTime() > 60000);
              return (
                <React.Fragment key={msg.id}>
@@ -151,8 +147,8 @@ const App: React.FC = () => {
                  )}
                  <ChatBubble 
                    message={msg} 
-                   userAvatar={userAvatar}
-                   botAvatar={botAvatar}
+                   userAvatar={settings.userAvatar}
+                   botAvatar={settings.botAvatar}
                  />
                </React.Fragment>
              );
@@ -183,7 +179,7 @@ const App: React.FC = () => {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             className="flex-1 bg-transparent px-5 py-2 resize-none text-lg text-black placeholder-gray-400 focus:outline-none"
-            placeholder=""
+            placeholder="Type a message..."
           />
 
           {/* Footer / Send Button */}

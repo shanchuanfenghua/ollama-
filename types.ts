@@ -11,3 +11,14 @@ export interface LogEntry {
   level: string;
   message: string;
 }
+
+export type AIProvider = 'ollama' | 'chrome_builtin';
+
+export interface AppSettings {
+  userAvatar: string;
+  botNickname: string;
+  botAvatar: string;
+  aiProvider: AIProvider;
+  ollamaModel: string;
+  ollamaBaseUrl: string;
+}
