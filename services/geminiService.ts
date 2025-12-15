@@ -1,46 +1,5 @@
 import { Message, AppSettings } from "../types";
 
-// Type definitions for Chrome's experimental built-in AI
-declare global {
-  interface Window {
-    ai?: {
-      languageModel?: {
-        capabilities: () => Promise<{ available: 'readily' | 'after-download' | 'no' }>;
-        create: (options?: any) => Promise<{
-          prompt: (input: string) => Promise<string>;
-          promptStreaming?: (input: string) => AsyncIterable<string>;
-        }>;
-      };
-    };
-  }
-}
-
-/**
- * Tries to generate a response using Chrome's built-in local AI (Gemini Nano).
- */
-const generateLocalBrowserResponse = async (text: string): Promise<string> => {
-  try {
-    if (!window.ai?.languageModel) {
-      throw new Error("Chrome built-in AI is not supported in this browser version. Enable 'Optimization Guide On Device Model' in chrome://flags.");
-    }
-
-    const capabilities = await window.ai.languageModel.capabilities();
-    if (capabilities.available === 'no') {
-      throw new Error("Chrome built-in AI is not available on this device.");
-    }
-
-    const session = await window.ai.languageModel.create({
-      systemPrompt: "You are a helpful assistant. Keep answers concise."
-    });
-
-    const result = await session.prompt(text);
-    return `[Chrome Built-in] ${result}`;
-  } catch (error: any) {
-    console.warn("Failed to use Chrome local AI:", error);
-    throw new Error(`Chrome AI Error: ${error.message || 'Unknown error'}`);
-  }
-};
-
 /**
  * Sends a message to a local Ollama instance.
  */
@@ -99,12 +58,5 @@ export const sendMessageToAI = async (
   newMessage: string,
   settings: AppSettings
 ): Promise<string> => {
-  
-  if (settings.aiProvider === 'ollama') {
-    return await sendMessageToOllama(history, newMessage, settings);
-  } else if (settings.aiProvider === 'chrome_builtin') {
-    return await generateLocalBrowserResponse(newMessage);
-  }
-
-  throw new Error("Invalid AI Provider selected.");
+  return await sendMessageToOllama(history, newMessage, settings);
 };

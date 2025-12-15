@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, RefreshCw, Upload, Settings, User, Server, Cpu } from 'lucide-react';
+import { X, RefreshCw, Upload, Settings, User, Server } from 'lucide-react';
 import { AppSettings } from '../types';
 
 interface SettingsModalProps {
@@ -23,7 +23,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [botAvatar, setBotAvatar] = useState(settings.botAvatar);
 
   // Model State
-  const [aiProvider, setAiProvider] = useState(settings.aiProvider);
   const [ollamaModel, setOllamaModel] = useState(settings.ollamaModel);
   const [ollamaBaseUrl, setOllamaBaseUrl] = useState(settings.ollamaBaseUrl);
 
@@ -35,7 +34,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       setUserAvatar(settings.userAvatar);
       setBotNickname(settings.botNickname);
       setBotAvatar(settings.botAvatar);
-      setAiProvider(settings.aiProvider);
       setOllamaModel(settings.ollamaModel);
       setOllamaBaseUrl(settings.ollamaBaseUrl);
     }
@@ -69,7 +67,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       userAvatar,
       botNickname,
       botAvatar,
-      aiProvider,
+      aiProvider: 'ollama',
       ollamaModel,
       ollamaBaseUrl
     });
@@ -106,7 +104,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             onClick={() => setActiveTab('model')}
             className={`py-3 px-1 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'model' ? 'border-[#07c160] text-[#07c160]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
-            <Settings size={16} /> Local Model
+            <Settings size={16} /> Ollama Settings
           </button>
         </div>
 
@@ -163,69 +161,42 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             </>
           ) : (
             <div className="space-y-6">
-               <div className="space-y-4">
-                  <label className="block text-sm font-medium text-gray-700">Local Provider</label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <button 
-                      onClick={() => setAiProvider('ollama')}
-                      className={`p-4 rounded-lg border-2 text-left transition-all ${
-                        aiProvider === 'ollama' 
-                        ? 'border-[#07c160] bg-[#f0fdf4]' 
-                        : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 font-semibold text-gray-900"><Server size={18}/> Ollama</div>
-                      <div className="text-xs text-gray-500 mt-1">Connects to local API (localhost)</div>
-                    </button>
-                    
-                    <button 
-                      onClick={() => setAiProvider('chrome_builtin')}
-                      className={`p-4 rounded-lg border-2 text-left transition-all ${
-                        aiProvider === 'chrome_builtin' 
-                        ? 'border-[#07c160] bg-[#f0fdf4]' 
-                        : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 font-semibold text-gray-900"><Cpu size={18}/> Chrome AI</div>
-                      <div className="text-xs text-gray-500 mt-1">Experimental built-in model</div>
-                    </button>
+               <div className="flex items-start gap-3 bg-[#f0fdf4] border border-[#07c160] rounded-lg p-4">
+                  <div className="text-[#07c160] mt-0.5"><Server size={20} /></div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900">Ollama Local Server</h4>
+                    <p className="text-xs text-gray-600 mt-1">
+                      This app connects directly to your local Ollama instance. No data is sent to the cloud.
+                    </p>
                   </div>
                </div>
 
-               {aiProvider === 'ollama' ? (
-                 <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <div className="bg-orange-50 border border-orange-100 rounded-md p-3 text-xs text-orange-800">
-                      <strong>Requirement:</strong> Run <code>OLLAMA_ORIGINS="*" ollama serve</code> in your terminal.
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">Server URL</label>
-                      <input
-                        type="text"
-                        value={ollamaBaseUrl}
-                        onChange={(e) => setOllamaBaseUrl(e.target.value)}
-                        placeholder="http://localhost:11434"
-                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm font-mono text-gray-800 focus:outline-none focus:border-[#07c160]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">Model Name</label>
-                      <input
-                        type="text"
-                        value={ollamaModel}
-                        onChange={(e) => setOllamaModel(e.target.value)}
-                        placeholder="e.g., qwen2.5:7b"
-                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm font-mono text-gray-800 focus:outline-none focus:border-[#07c160]"
-                      />
-                    </div>
-                 </div>
-               ) : (
-                <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <div className="bg-blue-50 border border-blue-100 rounded-md p-3 text-xs text-blue-800">
-                    <strong>Experimental:</strong> Uses Chrome's built-in Nano model. Requires Chrome Canary or Dev version with specific flags enabled.
+               <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div className="bg-orange-50 border border-orange-100 rounded-md p-3 text-xs text-orange-800">
+                    <strong>Requirement:</strong> Ensure Ollama is running with <code>OLLAMA_ORIGINS="*" ollama serve</code> in your terminal.
                   </div>
-                </div>
-               )}
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Server URL</label>
+                    <input
+                      type="text"
+                      value={ollamaBaseUrl}
+                      onChange={(e) => setOllamaBaseUrl(e.target.value)}
+                      placeholder="http://localhost:11434"
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm font-mono text-gray-800 focus:outline-none focus:border-[#07c160]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Model Name</label>
+                    <input
+                      type="text"
+                      value={ollamaModel}
+                      onChange={(e) => setOllamaModel(e.target.value)}
+                      placeholder="e.g., qwen2.5:7b"
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm font-mono text-gray-800 focus:outline-none focus:border-[#07c160]"
+                    />
+                  </div>
+               </div>
             </div>
           )}
 

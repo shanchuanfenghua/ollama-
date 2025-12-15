@@ -115,12 +115,7 @@ const App: React.FC = () => {
         {/* Chat Header */}
         <div className="h-[60px] border-b border-[#e7e7e7] flex items-center justify-between px-6 bg-[#f5f5f5] flex-shrink-0 z-10">
           <div className="flex items-center gap-3">
-             <div className="flex flex-col">
-               <div className="font-medium text-lg text-black">{settings.botNickname}</div>
-               <div className="text-[10px] text-gray-500 uppercase tracking-wide">
-                 {settings.aiProvider === 'ollama' ? `Running on ${settings.ollamaModel}` : 'Running on Chrome Built-in'}
-               </div>
-             </div>
+             <div className="font-medium text-lg text-black">{settings.botNickname}</div>
           </div>
           <button 
             onClick={() => setIsSettingsOpen(true)}

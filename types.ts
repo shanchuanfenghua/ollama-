@@ -12,7 +12,7 @@ export interface LogEntry {
   message: string;
 }
 
-export type AIProvider = 'ollama' | 'chrome_builtin';
+export type AIProvider = 'ollama';
 
 export interface AppSettings {
   userAvatar: string;
