@@ -4,10 +4,18 @@ import { Message } from '../types';
 interface ChatBubbleProps {
   message: Message;
   showAvatar?: boolean;
+  userAvatar?: string;
+  botAvatar?: string;
 }
 
-const ChatBubble: React.FC<ChatBubbleProps> = ({ message, showAvatar = true }) => {
+const ChatBubble: React.FC<ChatBubbleProps> = ({ 
+  message, 
+  showAvatar = true, 
+  userAvatar = "https://api.dicebear.com/9.x/avataaars/svg?seed=Felix",
+  botAvatar = "https://api.dicebear.com/9.x/bottts-neutral/svg?seed=Gemini"
+}) => {
   const isUser = message.role === 'user';
+  const avatarSrc = isUser ? userAvatar : botAvatar;
 
   return (
     <div className={`flex w-full mb-4 ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -16,17 +24,11 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, showAvatar = true }) =
         {/* Avatar */}
         {showAvatar && (
           <div className="flex-shrink-0">
-             {isUser ? (
-                <img 
-                  src="https://api.dicebear.com/9.x/avataaars/svg?seed=Felix" 
-                  alt="User" 
-                  className="w-9 h-9 rounded-sm bg-gray-200"
-                />
-             ) : (
-                <div className="w-9 h-9 rounded-sm bg-blue-500 flex items-center justify-center text-white font-bold text-sm">
-                  AI
-                </div>
-             )}
+            <img 
+              src={avatarSrc}
+              alt={isUser ? "User" : "Bot"} 
+              className="w-9 h-9 rounded-sm bg-gray-200 object-cover"
+            />
           </div>
         )}
 

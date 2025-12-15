@@ -2,11 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Message } from './types';
 import { sendMessageToGemini } from './services/geminiService';
 import ChatBubble from './components/ChatBubble';
+import SettingsModal from './components/SettingsModal';
 import { 
   Smile, 
   Folder, 
   Paperclip,
-  Menu,
   MoreHorizontal
 } from 'lucide-react';
 
@@ -14,6 +14,16 @@ const App: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  
+  // User Settings State (Nickname removed)
+  const [userAvatar, setUserAvatar] = useState('https://api.dicebear.com/9.x/avataaars/svg?seed=Felix');
+  
+  // Bot Settings State
+  const [botNickname, setBotNickname] = useState('Gemini Assistant');
+  const [botAvatar, setBotAvatar] = useState('https://api.dicebear.com/9.x/bottts-neutral/svg?seed=Gemini');
+  
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -86,18 +96,41 @@ const App: React.FC = () => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
   };
 
+  const handleSaveSettings = (
+    newUserAvatar: string,
+    newBotNickname: string,
+    newBotAvatar: string
+  ) => {
+    setUserAvatar(newUserAvatar);
+    setBotNickname(newBotNickname);
+    setBotAvatar(newBotAvatar);
+  };
+
   return (
     <div className="flex items-center justify-center h-screen w-full bg-cover bg-center font-sans" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=2070&auto=format&fit=crop")' }}>
       
+      <SettingsModal 
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        currentUserAvatar={userAvatar}
+        currentBotNickname={botNickname}
+        currentBotAvatar={botAvatar}
+        onSave={handleSaveSettings}
+      />
+
       {/* Main Window Container - Simplified to just the Chat Area */}
-      <div className="flex flex-col w-[800px] h-[800px] max-h-[90vh] bg-[#f5f5f5] rounded-lg shadow-2xl overflow-hidden">
+      <div className="flex flex-col w-[800px] h-[800px] max-h-[90vh] bg-[#f5f5f5] rounded-lg shadow-2xl overflow-hidden relative">
         
         {/* Chat Header */}
-        <div className="h-[60px] border-b border-[#e7e7e7] flex items-center justify-between px-6 bg-[#f5f5f5] flex-shrink-0">
+        <div className="h-[60px] border-b border-[#e7e7e7] flex items-center justify-between px-6 bg-[#f5f5f5] flex-shrink-0 z-10">
           <div className="flex items-center gap-3">
-             <div className="font-medium text-lg text-black">Gemini Assistant</div>
+             <div className="font-medium text-lg text-black">{botNickname}</div>
           </div>
-          <button className="text-black/60 hover:text-black transition-colors">
+          <button 
+            onClick={() => setIsSettingsOpen(true)}
+            className="text-black/60 hover:text-black transition-colors p-2 hover:bg-gray-200 rounded-md"
+            title="Settings"
+          >
              <MoreHorizontal size={20} />
           </button>
         </div>
@@ -116,7 +149,11 @@ const App: React.FC = () => {
                      </span>
                    </div>
                  )}
-                 <ChatBubble message={msg} />
+                 <ChatBubble 
+                   message={msg} 
+                   userAvatar={userAvatar}
+                   botAvatar={botAvatar}
+                 />
                </React.Fragment>
              );
           })}
