@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, RefreshCw, Upload, Settings, User, Server } from 'lucide-react';
+import { X, RefreshCw, Upload, User, Server } from 'lucide-react';
 import { AppSettings } from '../types';
 
 interface SettingsModalProps {
@@ -9,207 +9,167 @@ interface SettingsModalProps {
   onSave: (newSettings: AppSettings) => void;
 }
 
-const SettingsModal: React.FC<SettingsModalProps> = ({
-  isOpen,
-  onClose,
-  settings,
-  onSave,
-}) => {
-  const [activeTab, setActiveTab] = useState<'profile' | 'model'>('profile');
+const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave }) => {
+  const [activeTab, setActiveTab] = useState<'profile' | 'connection'>('profile');
+  const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
   
-  // Profile State
-  const [userAvatar, setUserAvatar] = useState(settings.userAvatar);
-  const [botNickname, setBotNickname] = useState(settings.botNickname);
-  const [botAvatar, setBotAvatar] = useState(settings.botAvatar);
-
-  // Model State
-  const [ollamaModel, setOllamaModel] = useState(settings.ollamaModel);
-  const [ollamaBaseUrl, setOllamaBaseUrl] = useState(settings.ollamaBaseUrl);
-
   const userFileInputRef = useRef<HTMLInputElement>(null);
   const botFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (isOpen) {
-      setUserAvatar(settings.userAvatar);
-      setBotNickname(settings.botNickname);
-      setBotAvatar(settings.botAvatar);
-      setOllamaModel(settings.ollamaModel);
-      setOllamaBaseUrl(settings.ollamaBaseUrl);
-    }
+    if (isOpen) setLocalSettings(settings);
   }, [isOpen, settings]);
 
-  const handleRandomizeAvatar = (type: 'user' | 'bot') => {
-    const randomSeed = Math.random().toString(36).substring(7);
-    if (type === 'user') {
-      setUserAvatar(`https://api.dicebear.com/9.x/avataaars/svg?seed=${randomSeed}`);
-    } else {
-      setBotAvatar(`https://api.dicebear.com/9.x/bottts-neutral/svg?seed=${randomSeed}`);
-    }
+  const updateSetting = (key: keyof AppSettings, value: string) => {
+    setLocalSettings(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'user' | 'bot') => {
+  const handleRandomizeAvatar = (target: 'userAvatar' | 'botAvatar') => {
+    const seed = Math.random().toString(36).substring(7);
+    const type = target === 'userAvatar' ? 'avataaars' : 'bottts-neutral';
+    updateSetting(target, `https://api.dicebear.com/9.x/${type}/svg?seed=${seed}`);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, target: 'userAvatar' | 'botAvatar') => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          if (type === 'user') setUserAvatar(reader.result);
-          else setBotAvatar(reader.result);
-        }
+        if (typeof reader.result === 'string') updateSetting(target, reader.result);
       };
       reader.readAsDataURL(file);
     }
-  };
-
-  const handleSave = () => {
-    onSave({
-      userAvatar,
-      botNickname,
-      botAvatar,
-      aiProvider: 'ollama',
-      ollamaModel,
-      ollamaBaseUrl
-    });
-    onClose();
   };
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white w-[500px] rounded-lg shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]">
-        
-        {/* Hidden File Inputs */}
-        <input type="file" ref={botFileInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'bot')} />
-        <input type="file" ref={userFileInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'user')} />
+      <div className="bg-white w-[500px] rounded-lg shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+        <input type="file" ref={botFileInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'botAvatar')} />
+        <input type="file" ref={userFileInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'userAvatar')} />
 
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50">
-          <h2 className="text-lg font-medium text-gray-800">Settings</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+          <h2 className="text-lg font-medium text-gray-800">设置</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X size={20} />
           </button>
         </div>
 
-        {/* Tabs */}
         <div className="flex border-b border-gray-100 px-6">
-          <button 
-            onClick={() => setActiveTab('profile')}
-            className={`py-3 px-1 mr-6 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'profile' ? 'border-[#07c160] text-[#07c160]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-          >
-            <User size={16} /> Profile
-          </button>
-          <button 
-            onClick={() => setActiveTab('model')}
-            className={`py-3 px-1 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'model' ? 'border-[#07c160] text-[#07c160]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-          >
-            <Settings size={16} /> Ollama Settings
-          </button>
+          <TabButton active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} icon={<User size={16} />} label="个人资料" />
+          <TabButton active={activeTab === 'connection'} onClick={() => setActiveTab('connection')} icon={<Server size={16} />} label="连接设置" />
         </div>
 
-        {/* Body */}
         <div className="p-6 space-y-6 overflow-y-auto">
-          
           {activeTab === 'profile' ? (
             <>
-              {/* Partner Section */}
-              <div>
-                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Partner Profile</h3>
-                <div className="flex gap-5">
-                  <div className="flex flex-col items-center gap-2 flex-shrink-0">
-                     <div className="relative group">
-                      <img src={botAvatar} alt="Bot Avatar" className="w-24 h-24 rounded-full bg-gray-100 object-cover border-4 border-white shadow-md"/>
-                    </div>
-                  </div>
-                  <div className="flex-1 space-y-4 flex flex-col justify-center">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">Nickname</label>
-                      <input
-                        type="text"
-                        value={botNickname}
-                        onChange={(e) => setBotNickname(e.target.value)}
-                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-800 focus:outline-none focus:border-[#07c160] focus:bg-white transition-all"
-                      />
-                    </div>
-                    <div className="flex gap-3">
-                      <button onClick={() => botFileInputRef.current?.click()} className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 text-gray-700 rounded-md text-xs font-medium hover:bg-gray-50 hover:text-[#07c160] hover:border-[#07c160] transition-all shadow-sm"><Upload size={14} /> Upload</button>
-                      <button onClick={() => handleRandomizeAvatar('bot')} className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 text-gray-700 rounded-md text-xs font-medium hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"><RefreshCw size={14} /> Random</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
+              <ProfileSection 
+                title="助手设置"
+                avatar={localSettings.botAvatar}
+                nickname={localSettings.botNickname}
+                onNicknameChange={(val) => updateSetting('botNickname', val)}
+                onUpload={() => botFileInputRef.current?.click()}
+                onRandom={() => handleRandomizeAvatar('botAvatar')}
+              />
               <div className="border-t border-gray-100"></div>
-
-              {/* User Section */}
-              <div>
-                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">My Avatar</h3>
-                <div className="flex gap-5 items-center">
-                  <div className="relative group flex-shrink-0">
-                    <img src={userAvatar} alt="User Avatar" className="w-20 h-20 rounded-full bg-gray-100 object-cover border-4 border-white shadow-md"/>
-                  </div>
-                  <div className="flex-1 flex flex-col justify-center">
-                    <div className="text-sm text-gray-600 mb-2">Change your display avatar:</div>
-                    <div className="flex gap-3">
-                      <button onClick={() => userFileInputRef.current?.click()} className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 text-gray-700 rounded-md text-xs font-medium hover:bg-gray-50 hover:text-[#07c160] hover:border-[#07c160] transition-all shadow-sm"><Upload size={14} /> Upload</button>
-                      <button onClick={() => handleRandomizeAvatar('user')} className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 text-gray-700 rounded-md text-xs font-medium hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"><RefreshCw size={14} /> Random</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <ProfileSection 
+                title="我的设置"
+                avatar={localSettings.userAvatar}
+                isUser={true}
+                onUpload={() => userFileInputRef.current?.click()}
+                onRandom={() => handleRandomizeAvatar('userAvatar')}
+              />
             </>
           ) : (
             <div className="space-y-6">
                <div className="flex items-start gap-3 bg-[#f0fdf4] border border-[#07c160] rounded-lg p-4">
                   <div className="text-[#07c160] mt-0.5"><Server size={20} /></div>
                   <div>
-                    <h4 className="text-sm font-semibold text-gray-900">Ollama Local Server</h4>
+                    <h4 className="text-sm font-semibold text-gray-900">Ollama 本地服务</h4>
                     <p className="text-xs text-gray-600 mt-1">
-                      This app connects directly to your local Ollama instance. No data is sent to the cloud.
+                      应用将直接连接到您的 Ollama 实例。
                     </p>
                   </div>
                </div>
 
-               <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+               <div className="space-y-4">
                   <div className="bg-orange-50 border border-orange-100 rounded-md p-3 text-xs text-orange-800">
-                    <strong>Requirement:</strong> Ensure Ollama is running with <code>OLLAMA_ORIGINS="*" ollama serve</code> in your terminal.
+                    <strong>重要提示：</strong><br/>
+                    为了允许浏览器直接访问，您必须在启动 Ollama 时配置环境变量：<br/>
+                    <code className="bg-orange-100 px-1 rounded">OLLAMA_ORIGINS="*" ollama serve</code>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Server URL</label>
-                    <input
-                      type="text"
-                      value={ollamaBaseUrl}
-                      onChange={(e) => setOllamaBaseUrl(e.target.value)}
-                      placeholder="http://localhost:11434"
-                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm font-mono text-gray-800 focus:outline-none focus:border-[#07c160]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Model Name</label>
-                    <input
-                      type="text"
-                      value={ollamaModel}
-                      onChange={(e) => setOllamaModel(e.target.value)}
-                      placeholder="e.g., qwen2.5:7b"
-                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm font-mono text-gray-800 focus:outline-none focus:border-[#07c160]"
-                    />
-                  </div>
+                  <InputGroup 
+                    label="服务器地址 (URL)" 
+                    value={localSettings.baseUrl} 
+                    onChange={(v) => updateSetting('baseUrl', v)} 
+                    placeholder="http://localhost:11434"
+                  />
+                  <InputGroup 
+                    label="模型名称 (Model)" 
+                    value={localSettings.model} 
+                    onChange={(v) => updateSetting('model', v)} 
+                    placeholder="qwen2.5:7b"
+                  />
                </div>
             </div>
           )}
-
         </div>
 
-        {/* Footer */}
         <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3 mt-auto">
-          <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-md transition-colors">Cancel</button>
-          <button onClick={handleSave} className="px-6 py-2 text-sm font-medium text-white bg-[#07c160] hover:bg-[#06ad56] rounded-md shadow-sm transition-colors">Save All</button>
+          <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-md">取消</button>
+          <button onClick={() => { onSave(localSettings); onClose(); }} className="px-6 py-2 text-sm font-medium text-white bg-[#07c160] hover:bg-[#06ad56] rounded-md shadow-sm">保存配置</button>
         </div>
       </div>
     </div>
   );
 };
+
+const TabButton = ({ active, onClick, icon, label }: any) => (
+  <button 
+    onClick={onClick}
+    className={`py-3 px-1 mr-6 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${active ? 'border-[#07c160] text-[#07c160]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+  >
+    {icon} {label}
+  </button>
+);
+
+const InputGroup = ({ label, value, onChange, placeholder }: any) => (
+  <div>
+    <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm font-mono text-gray-800 focus:outline-none focus:border-[#07c160]"
+    />
+  </div>
+);
+
+const ProfileSection = ({ title, avatar, nickname, onNicknameChange, onUpload, onRandom, isUser }: any) => (
+  <div>
+    <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">{title}</h3>
+    <div className="flex gap-5 items-center">
+      <img src={avatar} alt="Avatar" className="w-20 h-20 rounded-full bg-gray-100 object-cover border-4 border-white shadow-md flex-shrink-0"/>
+      <div className="flex-1 space-y-3">
+        {!isUser && (
+          <input
+            type="text"
+            value={nickname}
+            onChange={(e) => onNicknameChange(e.target.value)}
+            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-800 focus:outline-none focus:border-[#07c160]"
+            placeholder="昵称"
+          />
+        )}
+        <div className="flex gap-3">
+          <button onClick={onUpload} className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 text-gray-700 rounded-md text-xs font-medium hover:border-[#07c160] hover:text-[#07c160] transition-all"><Upload size={14} /> 上传</button>
+          <button onClick={onRandom} className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 text-gray-700 rounded-md text-xs font-medium hover:bg-gray-50 transition-all"><RefreshCw size={14} /> 随机</button>
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
 export default SettingsModal;

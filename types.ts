@@ -5,20 +5,20 @@ export interface Message {
   timestamp: Date;
 }
 
+export interface AppSettings {
+  // Profile
+  userAvatar: string;
+  botNickname: string;
+  botAvatar: string;
+  
+  // Ollama Connection
+  model: string;
+  baseUrl: string;
+}
+
 export interface LogEntry {
   id: string;
   timestamp: string;
   level: string;
   message: string;
-}
-
-export type AIProvider = 'ollama';
-
-export interface AppSettings {
-  userAvatar: string;
-  botNickname: string;
-  botAvatar: string;
-  aiProvider: AIProvider;
-  ollamaModel: string;
-  ollamaBaseUrl: string;
 }

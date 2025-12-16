@@ -3,43 +3,33 @@ import { Message, AppSettings } from './types';
 import { sendMessageToAI } from './services/geminiService';
 import ChatBubble from './components/ChatBubble';
 import SettingsModal from './components/SettingsModal';
-import { 
-  MoreHorizontal
-} from 'lucide-react';
+import { MoreHorizontal } from 'lucide-react';
 
 const App: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  // Consolidated Settings State - Defaulting to Local (Ollama)
   const [settings, setSettings] = useState<AppSettings>({
     userAvatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Felix',
-    botNickname: 'Local Assistant',
+    botNickname: '本地助手',
     botAvatar: 'https://api.dicebear.com/9.x/bottts-neutral/svg?seed=Ollama',
-    aiProvider: 'ollama',
-    ollamaModel: 'qwen2.5:7b',
-    ollamaBaseUrl: 'http://localhost:11434'
+    model: 'qwen2.5:7b',
+    baseUrl: 'http://localhost:11434' // Direct connection default
   });
   
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
-  };
-
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
   }, [messages]);
 
-  // Initial Message
   useEffect(() => {
     setMessages([{
       id: 'init',
       role: 'model',
-      content: "你好！我是运行在 Ollama 上的本地 AI 助手。我已经准备好进行私密安全的聊天了。",
+      content: "你好！我是你的本地 AI 助手。请确保 Ollama 正在运行，并已配置允许跨域访问。",
       timestamp: new Date()
     }]);
   }, []);
@@ -47,36 +37,33 @@ const App: React.FC = () => {
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
-    const userMsgText = input;
-    setInput(''); // Clear immediately
+    const userText = input;
+    setInput('');
     setIsLoading(true);
 
     const newUserMsg: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: userMsgText,
+      content: userText,
       timestamp: new Date()
     };
 
     setMessages(prev => [...prev, newUserMsg]);
 
     try {
-      const responseText = await sendMessageToAI(messages, userMsgText, settings);
-
-      const newBotMsg: Message = {
+      const response = await sendMessageToAI(messages, userText, settings);
+      
+      setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'model',
-        content: responseText,
+        content: response,
         timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, newBotMsg]);
+      }]);
     } catch (error: any) {
-      console.error(error);
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         role: 'model',
-        content: `错误: ${error.message || '发生了未知错误。'}`,
+        content: `错误: ${error.message || '未知错误'}`,
         timestamp: new Date()
       }]);
     } finally {
@@ -91,11 +78,6 @@ const App: React.FC = () => {
     }
   };
 
-  // Helper to format time like "15:30"
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-  };
-
   return (
     <div className="flex items-center justify-center h-screen w-full bg-cover bg-center font-sans" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=2070&auto=format&fit=crop")' }}>
       
@@ -106,34 +88,30 @@ const App: React.FC = () => {
         onSave={setSettings}
       />
 
-      {/* Main Window Container */}
       <div className="flex flex-col w-[800px] h-[800px] max-h-[90vh] bg-[#f5f5f5] rounded-lg shadow-2xl overflow-hidden relative">
         
-        {/* Chat Header */}
-        <div className="h-[60px] border-b border-[#e7e7e7] flex items-center justify-between px-6 bg-[#f5f5f5] flex-shrink-0 z-10">
-          <div className="flex items-center gap-3">
-             <div className="font-medium text-lg text-black">{settings.botNickname}</div>
-          </div>
+        {/* Header */}
+        <div className="h-[60px] border-b border-[#e7e7e7] flex items-center justify-between px-6 bg-[#f5f5f5] z-10">
+          <div className="font-medium text-lg text-black">{settings.botNickname}</div>
           <button 
             onClick={() => setIsSettingsOpen(true)}
-            className="text-black/60 hover:text-black transition-colors p-2 hover:bg-gray-200 rounded-md"
-            title="Settings"
+            className="text-black/60 hover:text-black p-2 hover:bg-gray-200 rounded-md transition-colors"
           >
              <MoreHorizontal size={20} />
           </button>
         </div>
 
-        {/* Messages Area */}
+        {/* Chat Area */}
         <div className="flex-1 overflow-y-auto p-6 space-y-2 bg-[#f5f5f5]">
           {messages.map((msg, index) => {
-             // Logic to show timestamp
-             const showTime = index === 0 || (new Date(msg.timestamp).getTime() - new Date(messages[index-1].timestamp).getTime() > 60000);
+             const prevMsg = messages[index-1];
+             const showTime = index === 0 || (new Date(msg.timestamp).getTime() - new Date(prevMsg.timestamp).getTime() > 60000);
              return (
                <React.Fragment key={msg.id}>
                  {showTime && (
                    <div className="flex justify-center my-4">
                      <span className="text-xs text-gray-400 bg-gray-200/50 px-2 py-0.5 rounded">
-                       {formatTime(new Date(msg.timestamp))}
+                       {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
                      </span>
                    </div>
                  )}
@@ -146,19 +124,17 @@ const App: React.FC = () => {
              );
           })}
           {isLoading && (
-            <div className="flex items-center gap-2 ml-4 mb-4 mt-2">
-               <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-               <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-75"></div>
-               <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></div>
+            <div className="flex items-center gap-2 ml-4 mb-4 mt-2 opacity-50">
+               <div className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce"></div>
+               <div className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce delay-75"></div>
+               <div className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce delay-150"></div>
             </div>
           )}
           <div ref={messagesEndRef} />
         </div>
 
         {/* Input Area */}
-        <div className="h-[160px] border-t border-[#e7e7e7] bg-[#f5f5f5] flex flex-col flex-shrink-0">
-          
-          {/* Textarea */}
+        <div className="h-[160px] border-t border-[#e7e7e7] bg-[#f5f5f5] flex flex-col">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -166,14 +142,12 @@ const App: React.FC = () => {
             className="flex-1 bg-transparent px-5 py-4 resize-none text-lg text-black placeholder-gray-400 focus:outline-none"
             placeholder="Type a message..."
           />
-
-          {/* Footer / Send Button */}
           <div className="h-12 px-5 flex items-center justify-end">
             <span className="text-xs text-gray-400 mr-4">Press Enter to send</span>
             <button 
               onClick={handleSend}
               disabled={!input.trim() || isLoading}
-              className={`px-6 py-1.5 text-sm rounded-sm transition-colors border ${
+              className={`px-6 py-1.5 text-sm rounded-sm border transition-colors ${
                  input.trim() 
                  ? 'bg-[#e9e9e9] text-[#07c160] border-[#e9e9e9] hover:bg-[#d2d2d2]' 
                  : 'bg-[#e9e9e9] text-gray-400 border-[#e9e9e9] cursor-default'
@@ -183,7 +157,6 @@ const App: React.FC = () => {
             </button>
           </div>
         </div>
-
       </div>
     </div>
   );
