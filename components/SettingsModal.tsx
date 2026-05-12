@@ -10,7 +10,7 @@ interface SettingsModalProps {
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave }) => {
-  const [activeTab, setActiveTab] = useState<'profile' | 'connection'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'connection' | 'mqtt'>('profile');
   const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
   
   const userFileInputRef = useRef<HTMLInputElement>(null);
@@ -20,7 +20,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     if (isOpen) setLocalSettings(settings);
   }, [isOpen, settings]);
 
-  const updateSetting = (key: keyof AppSettings, value: string) => {
+  const updateSetting = (key: keyof AppSettings, value: any) => {
     setLocalSettings(prev => ({ ...prev, [key]: value }));
   };
 
@@ -58,7 +58,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
 
         <div className="flex border-b border-gray-100 px-6">
           <TabButton active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} icon={<User size={16} />} label="个人资料" />
-          <TabButton active={activeTab === 'connection'} onClick={() => setActiveTab('connection')} icon={<Server size={16} />} label="连接设置" />
+          <TabButton active={activeTab === 'connection'} onClick={() => setActiveTab('connection')} icon={<Server size={16} />} label="模型设置" />
+          <TabButton active={activeTab === 'mqtt'} onClick={() => setActiveTab('mqtt')} icon={<RefreshCw size={16} />} label="MQTT设置" />
         </div>
 
         <div className="p-6 space-y-6 overflow-y-auto">
@@ -68,7 +69,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                 title="助手设置"
                 avatar={localSettings.botAvatar}
                 nickname={localSettings.botNickname}
-                onNicknameChange={(val) => updateSetting('botNickname', val)}
+                onNicknameChange={(val: string) => updateSetting('botNickname', val)}
                 onUpload={() => botFileInputRef.current?.click()}
                 onRandom={() => handleRandomizeAvatar('botAvatar')}
               />
@@ -81,36 +82,67 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                 onRandom={() => handleRandomizeAvatar('userAvatar')}
               />
             </>
-          ) : (
+          ) : activeTab === 'connection' ? (
             <div className="space-y-6">
                <div className="flex items-start gap-3 bg-[#f0fdf4] border border-[#07c160] rounded-lg p-4">
                   <div className="text-[#07c160] mt-0.5"><Server size={20} /></div>
                   <div>
                     <h4 className="text-sm font-semibold text-gray-900">Ollama 本地服务</h4>
                     <p className="text-xs text-gray-600 mt-1">
-                      应用将直接连接到您的 Ollama 实例。
+                      应用将连接到您的本地 Ollama 实效模型。
                     </p>
                   </div>
                </div>
 
                <div className="space-y-4">
-                  <div className="bg-orange-50 border border-orange-100 rounded-md p-3 text-xs text-orange-800">
-                    <strong>重要提示：</strong><br/>
-                    为了允许浏览器直接访问，您必须在启动 Ollama 时配置环境变量：<br/>
-                    <code className="bg-orange-100 px-1 rounded">OLLAMA_ORIGINS="*" ollama serve</code>
-                  </div>
-
                   <InputGroup 
                     label="服务器地址 (URL)" 
                     value={localSettings.baseUrl} 
-                    onChange={(v) => updateSetting('baseUrl', v)} 
+                    onChange={(v: string) => updateSetting('baseUrl', v)} 
                     placeholder="http://localhost:11434"
                   />
                   <InputGroup 
                     label="模型名称 (Model)" 
                     value={localSettings.model} 
-                    onChange={(v) => updateSetting('model', v)} 
+                    onChange={(v: string) => updateSetting('model', v)} 
                     placeholder="qwen2.5:7b"
+                  />
+               </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+               <div className="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="text-blue-500 mt-0.5"><RefreshCw size={20} /></div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-blue-900">Mosquitto MQTT</h4>
+                    <p className="text-xs text-blue-700 mt-1">
+                      启用 MQTT 后，您的聊天消息将同步到指定的 Topic。
+                    </p>
+                  </div>
+               </div>
+
+               <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-md border border-gray-100">
+                    <span className="text-sm text-gray-700 font-medium">启用 MQTT 同步</span>
+                    <button 
+                      onClick={() => updateSetting('mqttEnabled', !localSettings.mqttEnabled)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${localSettings.mqttEnabled ? 'bg-[#07c160]' : 'bg-gray-300'}`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${localSettings.mqttEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
+
+                  <InputGroup 
+                    label="MQTT 服务器 (WebSockets URL)" 
+                    value={localSettings.mqttUrl} 
+                    onChange={(v: string) => updateSetting('mqttUrl', v)} 
+                    placeholder="ws://localhost:9001"
+                  />
+                  <InputGroup 
+                    label="订阅/发布 Topic" 
+                    value={localSettings.mqttTopic} 
+                    onChange={(v: string) => updateSetting('mqttTopic', v)} 
+                    placeholder="chat/ollama"
                   />
                </div>
             </div>

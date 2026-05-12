@@ -1,6 +1,6 @@
 {
-  "name": "Desktop Chat App",
-  "description": "A clean, desktop-style chat application resembling popular messaging platforms.",
+  "name": "Ollama MQTT Chat",
+  "description": "A WeChat-style local AI chat application using MQTT for messaging and Ollama (qwen2.5) for intelligence.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }

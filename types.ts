@@ -21,4 +21,9 @@ export interface AppSettings {
   // Ollama Connection
   model: string;
   baseUrl: string;
+
+  // MQTT Connection
+  mqttEnabled: boolean;
+  mqttUrl: string; // e.g. ws://localhost:9001
+  mqttTopic: string;
 }
